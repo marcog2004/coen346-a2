@@ -8,10 +8,17 @@ using namespace std;
 
 class Process {
 public:
-	string userID;
+	char userID;
 	int processNumber;
 	int readyTime;
 	int serviceTime;
+
+	Process(char iuserID, int iprocessNumber, int ireadyTime, int iserviceTime) {
+		userID = iuserID;
+		processNumber = iprocessNumber;
+		readyTime = ireadyTime;
+		serviceTime = iserviceTime;
+	}
 };
 
 int main() {
@@ -62,11 +69,7 @@ int main() {
 							serviceTime = stoi(serviceTimeString);
 						}
 						else {
-							Process process;
-							process.userID = userID;
-							process.processNumber = i;
-							process.readyTime = readyTime;
-							process.serviceTime = serviceTime;
+							Process process(userID, i, readyTime, serviceTime);
 							Processes.push_back(process);
 						}
 					}
