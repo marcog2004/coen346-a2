@@ -1,4 +1,4 @@
-#include <iostream>
+﻿#include <iostream>
 #include <fstream>
 #include <vector>
 #include <chrono>
@@ -11,7 +11,7 @@
 using namespace std;
 using namespace chrono;
 
-mutex process_mtx;
+mutex process_mtx, scheduler_mtx;
 
 class Process {
 public:
@@ -57,9 +57,96 @@ public:
 	}
 };
 
-void scheduleProcesses(vector<Process> Processes, vector<char> Users) {
+void scheduleProcesses(vector<Process>& Processes, vector<char>& Users, int quantum) {
 	ofstream outputFile("output.txt");
-	Processes[1].runProcess(1, 1, outputFile);
+
+	//organize processes by user
+	map<char, vector<Process*>> userProcesses;
+	for (auto& process : Processes) {
+		userProcesses[process.userID].push_back(&process);
+	}
+
+	int currentTime = 1;
+	bool processesRemaining = true;
+
+	// keep track of the next process to run for each user
+	map<char, int> userNextProcessIndex;
+	for (char user : Users) {
+		userNextProcessIndex[user] = 0;
+	}
+
+	while (processesRemaining) {
+		processesRemaining = false;
+
+		// Find users with ready processes at this time
+		vector<char> activeUsers;
+		for (char user : Users) {
+			bool hasReadyProcess = false;
+			for (auto* proc : userProcesses[user]) {
+				if (proc->readyTime <= currentTime && proc->remainingTime > 0) {
+					hasReadyProcess = true;
+					processesRemaining = true;
+					break;
+				}
+			}
+			if (hasReadyProcess) {
+				activeUsers.push_back(user);
+			}
+		}
+
+		// check if users are empty
+		if (activeUsers.empty()) {
+			int nextReadyTime = INT_MAX;
+			for (auto& proc : Processes) {
+				if (proc.remainingTime > 0 && proc.readyTime > currentTime && proc.readyTime < nextReadyTime) {
+					nextReadyTime = proc.readyTime;
+				}
+			}
+
+			if (nextReadyTime != INT_MAX) {
+				currentTime = nextReadyTime;
+				continue;
+			}
+			else {
+				break; // no more processes
+			}
+		}
+
+		// quantum should be shared equally
+		int userTimeSlice = quantum / activeUsers.size();
+
+		// Run one process from each active user
+		for (char userId : activeUsers) {
+			// Find the first ready process for this user
+			Process* selectedProc = nullptr;
+
+			for (auto* proc : userProcesses[userId]) {
+				if (proc->readyTime <= currentTime && proc->remainingTime > 0) {
+					selectedProc = proc;
+					break;
+				}
+			}
+
+			if (selectedProc) {
+				// Calculate actual execution time
+				int executedTime = min(userTimeSlice, selectedProc->remainingTime);
+
+				// Create a thread to run this process
+				int processCurrentTime = currentTime;
+				thread t([selectedProc, userTimeSlice, processCurrentTime, &outputFile]() {
+					lock_guard<mutex> lock(scheduler_mtx); // one process at a time
+					selectedProc->runProcess(userTimeSlice, processCurrentTime, outputFile);
+					});
+
+				t.join(); // wait for process to finish
+
+				// update current time
+				currentTime += executedTime;
+			}
+		}
+	}
+
+	outputFile.close();
 }
 
 int main() {
@@ -126,7 +213,7 @@ int main() {
 		cout << "User: " << Processes[i].userID << " | " << "Number: " << Processes[i].processNumber << " | " << "Ready Time: " << Processes[i].readyTime << " | " << "Service Time: " << Processes[i].serviceTime << "\n";
 	}
 
-	thread schedulingThread(scheduleProcesses, Processes, Users);
+	thread schedulingThread(scheduleProcesses, std::ref(Processes), std::ref(Users), quantum);
 	schedulingThread.join();
 
 }
