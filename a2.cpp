@@ -9,6 +9,7 @@ using namespace std;
 class Process {
 public:
 	string userID;
+	int processNumber;
 	int readyTime;
 	int serviceTime;
 };
@@ -23,13 +24,18 @@ int main() {
 	}
 
 	int quantum;
+
 	vector<Process> Processes;
+
 	string value;
 	char valChar;
+
 	string amountProcessesString = "0";
 	int amountProcesses = 0;
+
 	string readyTimeString;
 	int readyTime;
+
 	string serviceTimeString;
 	int serviceTime;
 
@@ -58,6 +64,7 @@ int main() {
 						else {
 							Process process;
 							process.userID = userID;
+							process.processNumber = i;
 							process.readyTime = readyTime;
 							process.serviceTime = serviceTime;
 							Processes.push_back(process);
@@ -69,9 +76,7 @@ int main() {
 	}
 
 	for (int i = 0; i < Processes.size(); i++) {
-		cout << "User ID: " << Processes[i].userID << " | " << "Ready Time: " << Processes[i].readyTime << " | " << "Service Time: " << Processes[i].serviceTime << "\n";
+		cout << "User: " << Processes[i].userID << " | " << "Number: " << Processes[i].processNumber << " | " << "Ready Time: " << Processes[i].readyTime << " | " << "Service Time: " << Processes[i].serviceTime << "\n";
 	}
-
-
 
 }
