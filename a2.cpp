@@ -3,6 +3,10 @@
 #include <vector>
 #include <chrono>
 #include <string>
+#include <mutex>
+#include <thread>
+#include <map>
+
 
 using namespace std;
 
@@ -12,12 +16,50 @@ public:
 	int processNumber;
 	int readyTime;
 	int serviceTime;
+	bool isRunning;
+	int remainingTime;
+	mutex mtx;
 
 	Process(char iuserID, int iprocessNumber, int ireadyTime, int iserviceTime) {
 		userID = iuserID;
 		processNumber = iprocessNumber;
 		readyTime = ireadyTime;
 		serviceTime = iserviceTime;
+		remainingTime = iserviceTime;
+		isRunning = false;
+	}
+	
+	Process(Process&& other)
+		: userID(other.userID), processNumber(other.processNumber),
+		readyTime(other.readyTime), serviceTime(other.serviceTime),
+		isRunning(other.isRunning), remainingTime(other.remainingTime) {
+	}
+
+	Process& operator=(Process&& other){
+		if (this != &other) {
+			userID = other.userID;
+			processNumber = other.processNumber;
+			readyTime = other.readyTime;
+			serviceTime = other.serviceTime;
+			isRunning = other.isRunning;
+			remainingTime = other.remainingTime;
+		}
+		return *this;
+	}
+
+	void running(int timeSlice, int currentTime, ofstream& outFile) {
+		lock_guard<mutex> lock(mtx);
+		isRunning = true;
+		outFile << "Time " << currentTime << ", User " << userID << ", Process " << processNumber << ", Resumed";
+		cout << "Time " << currentTime << ", User " << userID << ", Process " << processNumber << ", Resumed";
+
+		int executionTime = min(timeSlice, remainingTime);
+		this_thread::sleep_for(chrono::seconds(executionTime));
+		remainingTime -= executionTime;
+
+		outFile << "Time " << (currentTime + executionTime) << ", User " << userID << ", Process " << processNumber << ", Paused\n";
+		cout << "Time " << (currentTime + executionTime) << ", User " << userID << ", Process " << processNumber << ", Paused\n";
+		isRunning = false;
 	}
 };
 
@@ -70,7 +112,7 @@ int main() {
 						}
 						else {
 							Process process(userID, i, readyTime, serviceTime);
-							Processes.push_back(process);
+							Processes.push_back(move(process));
 						}
 					}
 				}
