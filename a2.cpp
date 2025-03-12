@@ -10,6 +10,8 @@
 
 using namespace std;
 
+mutex mtx;
+
 class Process {
 public:
 	char userID;
@@ -18,7 +20,7 @@ public:
 	int serviceTime;
 	bool isRunning;
 	int remainingTime;
-	mutex mtx;
+
 
 	Process(char iuserID, int iprocessNumber, int ireadyTime, int iserviceTime) {
 		userID = iuserID;
@@ -27,24 +29,6 @@ public:
 		serviceTime = iserviceTime;
 		remainingTime = iserviceTime;
 		isRunning = false;
-	}
-	
-	Process(Process&& other)
-		: userID(other.userID), processNumber(other.processNumber),
-		readyTime(other.readyTime), serviceTime(other.serviceTime),
-		isRunning(other.isRunning), remainingTime(other.remainingTime) {
-	}
-
-	Process& operator=(Process&& other){
-		if (this != &other) {
-			userID = other.userID;
-			processNumber = other.processNumber;
-			readyTime = other.readyTime;
-			serviceTime = other.serviceTime;
-			isRunning = other.isRunning;
-			remainingTime = other.remainingTime;
-		}
-		return *this;
 	}
 
 	void running(int timeSlice, int currentTime, ofstream& outFile) {
