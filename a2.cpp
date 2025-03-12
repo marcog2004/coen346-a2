@@ -9,8 +9,9 @@
 
 
 using namespace std;
+using namespace chrono;
 
-mutex mtx;
+mutex process_mtx;
 
 class Process {
 public:
@@ -18,9 +19,8 @@ public:
 	int processNumber;
 	int readyTime;
 	int serviceTime;
-	bool isRunning;
+	bool isStarted;
 	int remainingTime;
-
 
 	Process(char iuserID, int iprocessNumber, int ireadyTime, int iserviceTime) {
 		userID = iuserID;
@@ -28,24 +28,39 @@ public:
 		readyTime = ireadyTime;
 		serviceTime = iserviceTime;
 		remainingTime = iserviceTime;
-		isRunning = false;
+		isStarted = false;
 	}
 
-	void running(int timeSlice, int currentTime, ofstream& outFile) {
-		lock_guard<mutex> lock(mtx);
-		isRunning = true;
-		outFile << "Time " << currentTime << ", User " << userID << ", Process " << processNumber << ", Resumed";
-		cout << "Time " << currentTime << ", User " << userID << ", Process " << processNumber << ", Resumed";
+	void runProcess(int timeSlice, int currentTime, ofstream& outFile) {
+		lock_guard<mutex> lock(process_mtx);
+		if (isStarted == false) {
+			outFile << "Time " << currentTime << ", User " << userID << ", Process " << processNumber << ", Started\n";
+			cout << "Time " << currentTime << ", User " << userID << ", Process " << processNumber << ", Started\n";
+			isStarted = true;
+		}
+		
+		outFile << "Time " << currentTime << ", User " << userID << ", Process " << processNumber << ", Resumed\n";
+		cout << "Time " << currentTime << ", User " << userID << ", Process " << processNumber << ", Resumed\n";
+		
 
-		int executionTime = min(timeSlice, remainingTime);
-		this_thread::sleep_for(chrono::seconds(executionTime));
-		remainingTime -= executionTime;
+		int cpuTime = min(timeSlice, remainingTime);
+		this_thread::sleep_for(seconds(cpuTime));
+		remainingTime -= cpuTime;
 
-		outFile << "Time " << (currentTime + executionTime) << ", User " << userID << ", Process " << processNumber << ", Paused\n";
-		cout << "Time " << (currentTime + executionTime) << ", User " << userID << ", Process " << processNumber << ", Paused\n";
-		isRunning = false;
+		outFile << "Time " << (currentTime + cpuTime) << ", User " << userID << ", Process " << processNumber << ", Paused\n";
+		cout << "Time " << (currentTime + cpuTime) << ", User " << userID << ", Process " << processNumber << ", Paused\n";
+
+		if (remainingTime == 0) {
+			outFile << "Time " << (currentTime + cpuTime) << ", User " << userID << ", Process " << processNumber << ", Finished\n";
+			cout << "Time " << (currentTime + cpuTime) << ", User " << userID << ", Process " << processNumber << ", Finished\n";
+		}
 	}
 };
+
+void scheduleProcesses(vector<Process> Processes, vector<char> Users) {
+	ofstream outputFile("output.txt");
+	Processes[1].runProcess(1, 1, outputFile);
+}
 
 int main() {
 
@@ -59,6 +74,8 @@ int main() {
 	int quantum;
 
 	vector<Process> Processes;
+
+	vector<char> Users;
 
 	string value;
 	char valChar;
@@ -82,6 +99,7 @@ int main() {
 			valChar = value[0];
 			if (static_cast<int>(valChar) >= 65 && static_cast<int>(valChar) <= 90) {
 				userID = valChar;
+				Users.push_back(userID);
 				inputFile >> amountProcessesString;
 				amountProcesses = stoi(amountProcessesString);
 				for (int i = 0; i < amountProcesses; i++) {
@@ -96,7 +114,7 @@ int main() {
 						}
 						else {
 							Process process(userID, i, readyTime, serviceTime);
-							Processes.push_back(move(process));
+							Processes.push_back(process);
 						}
 					}
 				}
@@ -107,5 +125,8 @@ int main() {
 	for (int i = 0; i < Processes.size(); i++) {
 		cout << "User: " << Processes[i].userID << " | " << "Number: " << Processes[i].processNumber << " | " << "Ready Time: " << Processes[i].readyTime << " | " << "Service Time: " << Processes[i].serviceTime << "\n";
 	}
+
+	thread schedulingThread(scheduleProcesses, Processes, Users);
+	schedulingThread.join();
 
 }
