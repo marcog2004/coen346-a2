@@ -13,22 +13,22 @@ using namespace chrono;
 
 mutex process_mtx, scheduler_mtx;
 
-class Process {
-public:
-	char userID;
-	int processNumber;
-	int readyTime;
-	int serviceTime;
-	bool isStarted;
-	int remainingTime;
+class Process { // process class
+public: // public variables
+	char userID; // associated user id (single letter)
+	int processNumber; // associated process number (according to user)
+	int readyTime; // time when process is ready to execute
+	int serviceTime; // amount of time process needs with cpu
+	bool isStarted; // flag to check if program is in progress or starting for the first time
+	int remainingTime; // time remaining after process is executed partially
 
-	Process(char iuserID, int iprocessNumber, int ireadyTime, int iserviceTime) {
-		userID = iuserID;
-		processNumber = iprocessNumber;
-		readyTime = ireadyTime;
-		serviceTime = iserviceTime;
-		remainingTime = iserviceTime;
-		isStarted = false;
+	Process(char iuserID, int iprocessNumber, int ireadyTime, int iserviceTime) { // default constructor
+		userID = iuserID; // user id
+		processNumber = iprocessNumber; // process number
+		readyTime = ireadyTime; // ready time
+		serviceTime = iserviceTime; // service time
+		remainingTime = iserviceTime; // remaining time starts at maximum (which is service time)
+		isStarted = false; // not started initially
 	}
 
 	void runProcess(int timeSlice, int currentTime, ofstream& outFile) {
@@ -154,65 +154,69 @@ void scheduleProcesses(vector<Process>& Processes, vector<char>& Users, int quan
 
 int main() {
 
-	ifstream inputFile("input.txt");
+	ifstream inputFile("input.txt"); // Open input file
 
-	if (!inputFile) {
+	if (!inputFile) {	// If input file does not exist, show error
 		cerr << "Error opening input file";
 		return 1;
 	}
 
-	int quantum;
+	int quantum; // time quantum
 
-	vector<Process> Processes;
+	vector<Process> Processes; // vector of all existing processes
 
-	vector<char> Users;
+	vector<char> Users; // vector of all existing users
 
-	string value;
-	char valChar;
+	string value; // value that will be read from input file (as string)
+	char valChar; // value converted to character if string has length of 1
 
-	string amountProcessesString = "0";
-	int amountProcesses = 0;
+	string amountProcessesString = "0"; // read value of amount of processes (for each user) as string
+	int amountProcesses = 0; // amount of processes converted to int
 
-	string readyTimeString;
-	int readyTime;
+	string readyTimeString; // read value of ready time (for each process) as string
+	int readyTime; // ready time converted to int
 
-	string serviceTimeString;
-	int serviceTime;
+	string serviceTimeString; // read value of service time (for each process) as string
+	int serviceTime; // service time converted to int
 
-	inputFile >> quantum;
+	inputFile >> quantum; // read quantum from input file (will always be first value if input file is set up properly)
 
-	cout << "Quantum: " << quantum << "\n";
+	cout << "Quantum: " << quantum << "\n"; // display quantum
 
-	char userID = NULL;
+	char userID = NULL; // userID character
 
-	while (inputFile >> value) {
-			valChar = value[0];
-			if (static_cast<int>(valChar) >= 65 && static_cast<int>(valChar) <= 90) {
-				userID = valChar;
-				Users.push_back(userID);
-				inputFile >> amountProcessesString;
-				amountProcesses = stoi(amountProcessesString);
-				for (int i = 0; i < amountProcesses; i++) {
-					for (int j = 0; j <= 2; j++) {
-						if (j == 0) {
-							inputFile >> readyTimeString;
-							readyTime = stoi(readyTimeString);
-						}
-						else if (j == 1) {
-							inputFile >> serviceTimeString;
-							serviceTime = stoi(serviceTimeString);
-						}
-						else {
-							Process process(userID, i, readyTime, serviceTime);
-							Processes.push_back(process);
-						}
+
+	// loop that reads processes from each user
+	while (inputFile >> value) { // read value from file
+		valChar = value[0]; // since first value is user ID as one letter, convert to char
+		if (static_cast<int>(valChar) >= 65 && static_cast<int>(valChar) <= 90) { // verify the character is a letter
+			userID = valChar; // store character in userID
+			Users.push_back(userID); // add user to vector
+			inputFile >> amountProcessesString; // read next value (amount of processes for user)
+			amountProcesses = stoi(amountProcessesString); // convert to int and store
+			for (int i = 0; i < amountProcesses; i++) { // loop through each process in order to store ready/service times
+				for (int j = 0; j <= 2; j++) { // iterate 3 times per process to store ready/service times then store process
+					if (j == 0) { // first store ready time
+						inputFile >> readyTimeString; // read from file (as string)
+						readyTime = stoi(readyTimeString); // convert to int and store
+					}
+					else if (j == 1) { // second store service time
+						inputFile >> serviceTimeString; // read from file (as string)
+						serviceTime = stoi(serviceTimeString); // convert to int and store
+					}
+					else { // third store process
+						Process process(userID, i, readyTime, serviceTime); // create instance of process class with associated user id, process number, ready time, service time
+						Processes.push_back(process); // store in process vector
 					}
 				}
 			}
+		}
 
 	}
 
-	for (int i = 0; i < Processes.size(); i++) {
+	inputFile.close(); // close input file when finished reading
+
+	for (int i = 0; i < Processes.size(); i++) { // display what was read from input file
 		cout << "User: " << Processes[i].userID << " | " << "Number: " << Processes[i].processNumber << " | " << "Ready Time: " << Processes[i].readyTime << " | " << "Service Time: " << Processes[i].serviceTime << "\n";
 	}
 
