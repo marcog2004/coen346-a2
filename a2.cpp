@@ -161,6 +161,7 @@ int main() {
 		return 1;
 	}
 
+	string quantumString; // quantum as string
 	int quantum; // time quantum
 
 	vector<Process> Processes; // vector of all existing processes
@@ -179,7 +180,8 @@ int main() {
 	string serviceTimeString; // read value of service time (for each process) as string
 	int serviceTime; // service time converted to int
 
-	inputFile >> quantum; // read quantum from input file (will always be first value if input file is set up properly)
+	inputFile >> quantumString; // read quantum from input file (will always be first value if input file is set up properly)
+	quantum = stoi(quantumString); // store as integer
 
 	cout << "Quantum: " << quantum << "\n"; // display quantum
 
