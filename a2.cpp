@@ -220,7 +220,7 @@ int main() {
 		cout << "User: " << Processes[i].userID << " | " << "Number: " << Processes[i].processNumber << " | " << "Ready Time: " << Processes[i].readyTime << " | " << "Service Time: " << Processes[i].serviceTime << "\n";
 	}
 
-	thread schedulingThread(scheduleProcesses, std::ref(Processes), std::ref(Users), quantum);
+	thread schedulingThread(scheduleProcesses, std::ref(Processes), std::ref(Users), quantum); // start the scheduler
 	schedulingThread.join();
 
 }
