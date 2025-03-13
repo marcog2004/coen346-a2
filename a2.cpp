@@ -60,7 +60,7 @@ public:
 void scheduleProcesses(vector<Process>& Processes, vector<char>& Users, int quantum) {
 	ofstream outputFile("output.txt");
 
-	//organize processes by user
+	//associatates processes to users
 	map<char, vector<Process*>> userProcesses;
 	for (auto& process : Processes) {
 		userProcesses[process.userID].push_back(&process);
@@ -69,7 +69,7 @@ void scheduleProcesses(vector<Process>& Processes, vector<char>& Users, int quan
 	int currentTime = 1;
 	bool processesRemaining = true;
 
-	// keep track of the next process to run for each user
+	// keeps track of the next process to run for each user
 	map<char, int> userNextProcessIndex;
 	for (char user : Users) {
 		userNextProcessIndex[user] = 0;
@@ -78,12 +78,12 @@ void scheduleProcesses(vector<Process>& Processes, vector<char>& Users, int quan
 	while (processesRemaining) {
 		processesRemaining = false;
 
-		// Find users with ready processes at this time
+		// checks if users have available processes (readyTime <= currentTime, still has remainingTime left so > 0)
 		vector<char> activeUsers;
 		for (char user : Users) {
 			bool hasReadyProcess = false;
-			for (auto* proc : userProcesses[user]) {
-				if (proc->readyTime <= currentTime && proc->remainingTime > 0) {
+			for (auto* process : userProcesses[user]) {
+				if (process->readyTime <= currentTime && process->remainingTime > 0) {
 					hasReadyProcess = true;
 					processesRemaining = true;
 					break;
@@ -97,9 +97,9 @@ void scheduleProcesses(vector<Process>& Processes, vector<char>& Users, int quan
 		// check if users are empty
 		if (activeUsers.empty()) {
 			int nextReadyTime = INT_MAX;
-			for (auto& proc : Processes) {
-				if (proc.remainingTime > 0 && proc.readyTime > currentTime && proc.readyTime < nextReadyTime) {
-					nextReadyTime = proc.readyTime;
+			for (auto& process : Processes) {
+				if (process.remainingTime > 0 && process.readyTime > currentTime && process.readyTime < nextReadyTime) {
+					nextReadyTime = process.readyTime;
 				}
 			}
 
@@ -108,14 +108,14 @@ void scheduleProcesses(vector<Process>& Processes, vector<char>& Users, int quan
 				continue;
 			}
 			else {
-				break; // no more processes
+				break; // no more processes if there are no users
 			}
 		}
 
 		// quantum should be shared equally
 		int userTimeSlice = quantum / activeUsers.size();
 
-		// Run one process from each active user
+		// run a process from all active users
 		for (char userId : activeUsers) {
 			// Find the first ready process for this user
 			Process* selectedProc = nullptr;
@@ -128,10 +128,11 @@ void scheduleProcesses(vector<Process>& Processes, vector<char>& Users, int quan
 			}
 
 			if (selectedProc) {
-				// Calculate actual execution time
+				// execution time is the min value of usertTimeSlice and processes remaining time
+				// prevents execution time to go past the user's remaining time
 				int executedTime = min(userTimeSlice, selectedProc->remainingTime);
 
-				// Create a thread to run this process
+				// thread creation with all available info
 				int processCurrentTime = currentTime;
 				thread t([selectedProc, userTimeSlice, processCurrentTime, &outputFile]() {
 					lock_guard<mutex> lock(scheduler_mtx); // one process at a time
