@@ -32,25 +32,27 @@ public:
 	}
 
 	void runProcess(int timeSlice, int currentTime, ofstream& outFile) {
-		lock_guard<mutex> lock(process_mtx);
-		if (isStarted == false) {
+		lock_guard<mutex> lock(process_mtx); // activates the mutex and will automatically release once process is done
+		if (isStarted == false) { // checks if the process has already started executing. If not, states that it has started and sets flag to true
 			outFile << "Time " << currentTime << ", User " << userID << ", Process " << processNumber << ", Started\n";
 			cout << "Time " << currentTime << ", User " << userID << ", Process " << processNumber << ", Started\n";
 			isStarted = true;
 		}
-		
+
+		// States that the process has resumed execution
 		outFile << "Time " << currentTime << ", User " << userID << ", Process " << processNumber << ", Resumed\n";
 		cout << "Time " << currentTime << ", User " << userID << ", Process " << processNumber << ", Resumed\n";
 		
 
-		int cpuTime = min(timeSlice, remainingTime);
-		this_thread::sleep_for(seconds(cpuTime));
-		remainingTime -= cpuTime;
+		int cpuTime = min(timeSlice, remainingTime); // Finds the minimum between the time slice it is allotted and the remaining time the process has to execute
+		this_thread::sleep_for(seconds(cpuTime)); // Process sleeps to simulate execution for its allotted time
+		remainingTime -= cpuTime; // Subtracts the time that was just used from the remaining time to find the time left after this execution.
 
+		// Declares that the process has paused
 		outFile << "Time " << (currentTime + cpuTime) << ", User " << userID << ", Process " << processNumber << ", Paused\n";
 		cout << "Time " << (currentTime + cpuTime) << ", User " << userID << ", Process " << processNumber << ", Paused\n";
 
-		if (remainingTime == 0) {
+		if (remainingTime == 0) { // If the process has no time left, the process has completed. The process states that it has finished.
 			outFile << "Time " << (currentTime + cpuTime) << ", User " << userID << ", Process " << processNumber << ", Finished\n";
 			cout << "Time " << (currentTime + cpuTime) << ", User " << userID << ", Process " << processNumber << ", Finished\n";
 		}
